@@ -20,6 +20,13 @@ bool initialize_window(void) {
     return false;
   }
 
+  // Query for fullscreen max width and height of user screen
+  SDL_DisplayMode display_mode;
+  SDL_GetCurrentDisplayMode(0, &display_mode);
+
+  window_width = display_mode.w;
+  window_height = display_mode.h;
+
   // Create SDL window
   window = SDL_CreateWindow(
       NULL,
@@ -42,6 +49,8 @@ bool initialize_window(void) {
     return false;
   }
 
+  SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+
   return true;
 }
 
@@ -49,8 +58,9 @@ void setup(void) {
   // Allocate the required memory in bytes to hold the color buffer
   color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
 
-  // we should always check for return errors in a professional C project
-  // if (!color_buffer) {___}
+  if (!color_buffer) {
+    printf("Error allocating memory for color buffer.\n");
+  }
 
   // Creating a SDL texture that is used to display the color buffer
   color_buffer_texture = SDL_CreateTexture(
@@ -61,7 +71,10 @@ void setup(void) {
       window_height
   );
 
-  // error checking ?
+  if (!color_buffer_texture) {
+    printf("Error creating texture for color buffer.\n");
+  }
+
   // destroy texture ??
 }
 
@@ -107,13 +120,37 @@ void render_color_buffer(void) {
       NULL);
 }
 
+void draw_grid(void) {
+  uint32_t color = 0xFFFF55FF;
+  for (int y = 0; y < window_height; y++) {
+    for (int x = 0; x < window_width; x++) {
+      if (x % 10 == 0 && y % 10 == 0) { // and (&&) for dotted grid, or (||) for grid lines
+        color_buffer[(window_width * y) + x] = color;
+      }
+    }
+  }
+}
+
+void draw_rect(int x, int y, int width, int height, uint32_t color) {
+  for (int i = 0; i < width; i++) {
+    for (int j = 0; j < height; j++) {
+      int current_x = x + i;
+      int current_y = y + j;
+      color_buffer[(window_width * current_y) + current_x] = color;
+    }
+  }
+}
+
 void render(void) {
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 1); //RGBA
   SDL_RenderClear(renderer);
 
-  render_color_buffer();
+  draw_grid();
 
-  clear_color_buffer(0xFFFF00FF);
+  draw_rect(500, 700, 300, 200, 0xFF00FFFF);
+
+  render_color_buffer();
+  clear_color_buffer(0xFF000000);
 
   SDL_RenderPresent(renderer);
 }
@@ -125,7 +162,7 @@ void destroy_window(void) {
   SDL_Quit();
 }
 
-int main(void) {
+int main(int argc, char* argv[]) {
 
   is_running = initialize_window();
 

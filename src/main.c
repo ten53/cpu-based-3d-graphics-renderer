@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 #include "display.h"
+#include "vector.h"
 
 bool is_running = false;
 
@@ -20,8 +21,7 @@ void setup(void) {
       SDL_PIXELFORMAT_ARGB8888,
       SDL_TEXTUREACCESS_STREAMING,
       window_width,
-      window_height
-  );
+      window_height);
 
   if (!color_buffer_texture) {
     printf("Error creating texture for color buffer.\n");
@@ -51,12 +51,12 @@ void update(void) {
 }
 
 void render(void) {
-  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 1); //RGBA
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 1); // RGBA
   SDL_RenderClear(renderer);
 
-  draw_grid();
+//  draw_grid();
 
-  draw_rect(500, 700, 300, 200, 0xFF00FFFF);
+draw_pixel(100, 200, 0xFF00FFFF);
 
   render_color_buffer();
   clear_color_buffer(0xFF000000);

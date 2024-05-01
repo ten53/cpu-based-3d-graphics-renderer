@@ -71,6 +71,11 @@ void render_color_buffer(void) {
       NULL);
 }
 
+void draw_pixel(int x, int y, uint32_t color) {
+  color_buffer[(window_width * y) + x] = color;
+  // pixelBuffer[x+y*pixelBufferWidth] = color;
+}
+
 void draw_grid(void) {
   uint32_t color = 0xFFFF55FF;
   for (int y = 0; y < window_height; y++) {

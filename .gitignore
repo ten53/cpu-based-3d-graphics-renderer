@@ -54,3 +54,6 @@ dkms.conf
 # Editor
 .idea
 /cmake-build-debug
+/cmake_modules
+CMakeLists.txt
+.vscode

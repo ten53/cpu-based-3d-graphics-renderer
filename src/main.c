@@ -5,6 +5,10 @@
 #include "display.h"
 #include "vector.h"
 
+#define N_POINTS (9*9*9)
+
+vec3_t cube_points[N_POINTS];// 9*9*9 cube
+
 bool is_running = false;
 
 void setup(void) {
@@ -28,6 +32,18 @@ void setup(void) {
   }
 
   // destroy texture ??
+
+  int point_count = 0;
+  // load array of vectors (from -1 to 1 in 9*9*9 cube)
+  // increment 0.25 to get 9 vectors for length 2 (-1 to 1)
+  for (float x = -1; x <= 1; x += 0.25) {
+    for (float y = -1; y <= 1; y += 0.25) {
+      for (float z = -1; z <= 1; z += 0.25) {
+        vec3_t new_point = {.x = x, .y = y, .z = z};
+        cube_points[point_count++] = new_point;
+      }
+    }
+  }
 }
 
 void process_input(void) {
@@ -53,10 +69,7 @@ void update(void) {
 void render(void) {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 1); // RGBA
   SDL_RenderClear(renderer);
-
-//  draw_grid();
-
-draw_pixel(100, 200, 0xFF00FFFF);
+  draw_grid();
 
   render_color_buffer();
   clear_color_buffer(0xFF000000);

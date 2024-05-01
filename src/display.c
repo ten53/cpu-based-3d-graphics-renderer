@@ -77,10 +77,10 @@ void draw_pixel(int x, int y, uint32_t color) {
 }
 
 void draw_grid(void) {
-  uint32_t color = 0xFFFF55FF;
+  uint32_t color = 0xFFDADFE1;
   for (int y = 0; y < window_height; y++) {
     for (int x = 0; x < window_width; x++) {
-      if (x % 10 == 0 && y % 10 == 0) { // and (&&) for dotted grid, or (||) for grid lines
+      if (x % 25 == 0 && y % 25 == 0) { // and (&&) for dotted grid, or (||) for grid lines
         color_buffer[(window_width * y) + x] = color;
       }
     }

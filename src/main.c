@@ -5,9 +5,9 @@
 #include "display.h"
 #include "vector.h"
 
-#define N_POINTS (9*9*9)
+#define N_POINTS (9 * 9 * 9)
 
-vec3_t cube_points[N_POINTS];// 9*9*9 cube
+vec3_t cube_points[N_POINTS]; // 9*9*9 cube
 vec2_t projected_points[N_POINTS];
 
 vec3_t camera_position = {.x = 0, .y = 0, .z = -3};
@@ -15,6 +15,7 @@ vec3_t cube_rotation = {.x = 0, .y = 0, .z = 0};
 
 float fov_factor = 640;
 bool is_running = false;
+int previous_frame_time = 0;
 
 void setup(void) {
   // Allocate the required memory in bytes to hold the color buffer
@@ -72,13 +73,22 @@ void process_input(void) {
 vec2_t project(vec3_t point) {
   vec2_t projected_point = {
       .x = (fov_factor * point.x) / point.z,
-      .y = (fov_factor * point.y) / point.z
-  };
+      .y = (fov_factor * point.y) / point.z};
   return projected_point;
 }
 
 void update(void) {
+  // while loop blocks all processes, better solution: delay function
+  //  while (!SDL_TICKS_PASSED(SDL_GetTicks(), previous_frame_time + FRAME_TARGET_TIME));
 
+  // Wait until target time (in milliseconds) is reached
+  int time_to_wait = FRAME_TARGET_TIME - (SDL_GetTicks() - previous_frame_time);
+  // Only delay execution if we are running to fast
+  if (time_to_wait > 0 && time_to_wait <= FRAME_TARGET_TIME) {
+    SDL_Delay(time_to_wait);
+  }
+
+  previous_frame_time = SDL_GetTicks();
   cube_rotation.y += 0.01;
   cube_rotation.x += 0.01;
   cube_rotation.z += 0.01;

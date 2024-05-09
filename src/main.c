@@ -100,7 +100,7 @@ void update(void) {
       transformed_vertex = vec3_rotate_z(transformed_vertex, cube_rotation.z);
 
       // translate vertex away from camera
-      transformed_vertex.z  = camera_position.z;
+      transformed_vertex.z = camera_position.z;
       // project current vertex
       vec2_t projected_point = project(transformed_vertex);
 
@@ -119,10 +119,22 @@ void render(void) {
   draw_grid();
   // loop all projected triangles and render them
   for (int i = 0; i < N_MESH_FACES; i++) {
+    // draw vertex points
     triangle_t triangle = triangles_to_render[i];
     draw_rect(triangle.points[0].x, triangle.points[0].y, 3, 3, 0xffff00ff);
     draw_rect(triangle.points[1].x, triangle.points[1].y, 3, 3, 0xffff00ff);
     draw_rect(triangle.points[2].x, triangle.points[2].y, 3, 3, 0xffff00ff);
+
+    // draw unfilled triangle
+    draw_triangle(
+        triangle.points[0].x,
+        triangle.points[0].y,
+        triangle.points[1].x,
+        triangle.points[1].y,
+        triangle.points[2].x,
+        triangle.points[2].y,
+        0xFFFF00FF
+    );
   }
 
   render_color_buffer();

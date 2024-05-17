@@ -11,18 +11,22 @@ int window_height = 600;
 
 bool initialize_window(void) {
   if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-    fprintf(stderr, "Error initializing SDL.\n");
+    fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
     return false;
   }
 
-  // Query for fullscreen max width and height of user screen
+  // query fullscreen max width & height of user screen
   SDL_DisplayMode display_mode;
-  SDL_GetCurrentDisplayMode(0, &display_mode);
+  if (SDL_GetCurrentDisplayMode(0, &display_mode)) {
+    fprintf(stderr, "Error getting display mode: %s\n", SDL_GetError());
+    cleanup();
+    return false;
+  };
 
   window_width = display_mode.w;
   window_height = display_mode.h;
 
-  // Create SDL window
+  // create SDL window
   window = SDL_CreateWindow(
       NULL,
       SDL_WINDOWPOS_CENTERED,
@@ -32,83 +36,128 @@ bool initialize_window(void) {
       SDL_WINDOW_BORDERLESS);
 
   if (!window) {
-    fprintf(stderr, "Error creating SDL window.\n");
+    fprintf(stderr, "Error creating SDL window: %s\n", SDL_GetError());
+    cleanup();
     return false;
   }
 
-  // Create SDL renderer
+  // create SDL renderer
   renderer = SDL_CreateRenderer(window, -1, 0);
 
   if (!renderer) {
-    fprintf(stderr, "Error creating SDL renderer.\n");
+    fprintf(stderr, "Error creating SDL renderer: %s\n", SDL_GetError());
+    cleanup();
     return false;
   }
 
-  SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+  // set window to fullscreen
+  if (SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN) != 0) {
+    cleanup();
+    return false;
+  };
 
   return true;
 }
 
 void clear_color_buffer(uint32_t color) {
-  for (int y = 0; y < window_height; y++) { // rows
-    for (int x = 0; x < window_width; x++) { // columns
-      color_buffer[(window_width * y) + x] = color;
-    }
+  uint32_t* buffer_ptr = color_buffer;
+  for (int i = 0; i < window_width * window_height; i++) {
+    *buffer_ptr++ = color;
   }
 }
 
 void render_color_buffer(void) {
-  SDL_UpdateTexture(
+  // update texture with color buffer
+  if (SDL_UpdateTexture(
       color_buffer_texture,
       NULL,
       color_buffer,
-      (int) (window_width * sizeof(uint32_t)));// pitch -> the number of bytes in a row of pixel data
+      (int) (window_width * sizeof(uint32_t))) != 0) {
+    fprintf(stderr, "Error updating texfture: %s", SDL_GetError());
+    return;
+  }
 
-  SDL_RenderCopy(
+  // copy texture to rendering target
+  if (SDL_RenderCopy(
       renderer,
       color_buffer_texture,
       NULL,
-      NULL);
+      NULL) != 0) {
+    fprintf(stderr, "Error copying texture to renderer: %s\n", SDL_GetError());
+    return;
+  }
 }
 
-void draw_grid(void) {
-  uint32_t color = 0xFF3A3B3C;
-  for (int y = 0; y < window_height; y++) {
-    for (int x = 0; x < window_width; x++) {
-      if (x % 25 == 0 && y % 25 == 0) { // and (&&) for dotted grid, or (||) for grid lines
+void draw_grid(bool dots) {
+  const uint32_t color = 0xFF3A3B3C;
+  const int grid_spacing = 25;
+
+  if (dots) {
+    // draw dotted grid
+    for (int y = 0; y < window_height; y += grid_spacing) {
+      for (int x = 0; x < window_width; x += grid_spacing) {
+        color_buffer[(window_width * y) + x] = color;
+      }
+    }
+  } else {
+    // draw vertical grid lines
+    for (int x = 0; x < window_width; x += grid_spacing) {
+      for (int y = 0; y < window_height; y++) {
+        color_buffer[(window_width * y) + x] = color;
+      }
+    }
+
+    // draw horizontal grid lines
+    for (int y = 0; y < window_height; y += grid_spacing) {
+      for (int x = 0; x < window_width; x++) {
         color_buffer[(window_width * y) + x] = color;
       }
     }
   }
 }
 
-void draw_pixel(int x, int y, uint32_t color) {
+void draw_pixel(const int x, const int y, const uint32_t color) {
+  // keep pixel within screen boundaries
   if (x >= 0 && x < window_width && y >= 0 && y < window_height) {
     color_buffer[(window_width * y) + x] = color;
   }
 }
 
+// Bresenham's line algo
 void draw_line(int x0, int y0, int x1, int y1, uint32_t color) {
-  int delta_x =  (x1 - x0);
-  int delta_y = (y1 - y0);
+  int delta_x = abs(x1 - x0);
+  int delta_y = abs(y1 - y0);
 
-  int longest_side_length = abs(delta_x) >= abs(delta_y) ? abs(delta_x) : abs(delta_y);
+  // determine direction of line
+  int sign_x = (x0 < x1) ? 1 : -1;
+  int sign_y = (y0 < y1) ? 1 : -1;
 
-  // find how much x and y should increment each step
-  float x_inc = (float)delta_x / (float)longest_side_length;
-  float y_inc = (float)delta_y / (float)longest_side_length;
+  // err term to help decide when to step in x-direction or y-direction
+  int err = delta_x - delta_y;
+  int err2;
 
-  float current_x = x0;
-  float current_y = y0;
+  // draw a pixel at each position and update err term and positions
+  while (true) {
+    draw_pixel(x0, y0, color);
 
-  for (int i=0; i <= longest_side_length; i++) {
-    draw_pixel(round(current_x), round(current_y), color);
-    current_x += x_inc;
-    current_y += y_inc;
+    if (x0 == x1 && y0 == y1) break;
+
+    err2 = 2 * err;
+
+    if (err2 > -delta_y) {
+      err -= delta_y;
+      x0 += sign_x;
+    }
+
+    if (err2 < delta_x) {
+      err += delta_x;
+      y0 += sign_y;
+    }
   }
 }
 
-void draw_rect(int x, int y, int width, int height, uint32_t color) {
+void draw_rect(const int x, const int y, const int width, const int height, const uint32_t color) {
+  // iterate over width & height of rectangle
   for (int i = 0; i < width; i++) {
     for (int j = 0; j < height; j++) {
       int current_x = x + i;
@@ -118,15 +167,29 @@ void draw_rect(int x, int y, int width, int height, uint32_t color) {
   }
 }
 
-void draw_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color) {
+void draw_triangle(const int x0,
+                   const int y0,
+                   const int x1,
+                   const int y1,
+                   const int x2,
+                   const int y2,
+                   const uint32_t color) {
+  // draw three sides of triangle
   draw_line(x0, y0, x1, y1, color);
   draw_line(x1, y1, x2, y2, color);
   draw_line(x2, y2, x0, y0, color);
 }
 
+void cleanup(void) {
+  if (renderer) {
+    SDL_DestroyRenderer(renderer);
+    renderer = NULL;
+  }
 
-void destroy_window(void) {
-  SDL_DestroyRenderer(renderer);
-  SDL_DestroyWindow(window);
+  if (window) {
+    SDL_DestroyWindow(window);
+    window = NULL;
+  }
+
   SDL_Quit();
 }

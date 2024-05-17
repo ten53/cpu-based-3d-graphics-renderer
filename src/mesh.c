@@ -43,15 +43,21 @@ extern face_t cube_faces[N_CUBE_FACES] = {
 };
 
 void load_cube_mesh_data(void) {
-  for (int i = 0; i < N_CUBE_VERTICES; i++) {
-    vec3_t cube_vertex = cube_vertices[i];
+  // pre-allocate memory for vertices & faces based on number of elements
+  mesh.vertices = array_hold(mesh.vertices, N_CUBE_VERTICES, sizeof(*mesh.vertices));
+  mesh.faces = array_hold(mesh.faces, N_CUBE_FACES, sizeof(*mesh.faces));
+
+  // add cube vertices to mesh
+  for (int vertex_index = 0; vertex_index < N_CUBE_VERTICES; vertex_index++) {
+    const vec3_t cube_vertex = cube_vertices[vertex_index];
     array_push(mesh.vertices, cube_vertex);
   }
-  for (int i = 0; i < N_CUBE_FACES; i++) {
-    face_t cube_face = cube_faces[i];
+
+  // add cube faces to mesh
+  for (int face_index = 0; face_index < N_CUBE_FACES; face_index++) {
+    const face_t cube_face = cube_faces[face_index];
     array_push(mesh.faces, cube_face);
   }
-
 }
 
 void load_obj_file_data(const char* filename) {
@@ -95,3 +101,5 @@ void load_obj_file_data(const char* filename) {
 
   fclose(file);
 }
+
+

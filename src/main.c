@@ -6,17 +6,24 @@
 #include "display.h"
 #include "vector.h"
 #include "mesh.h"
+#include "settings.h"
 
 // Array of triangles that should be rendered frame by frame
 triangle_t* triangles_to_render = NULL;
-
 vec3_t camera_position = {0, 0, 0};
-
 float fov_factor = 640;
 bool is_running = false;
 int previous_frame_time = 0;
+render_settings_t render_settings;
 
 void setup(void) {
+  // init render settings
+  render_settings.render_mode = RENDER_MODE_WIRE_FRAME;
+  render_settings.culling_mode = CULLING_ENABLED;
+  render_settings.vertex_color = 0xFFFFFFFF;
+  render_settings.fill_color = 0xFFAF3895;
+  render_settings.frame_color = 0xFFFFFFFF;
+
   // allocate memory for the color buffer
   color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
   if (!color_buffer) {
@@ -43,17 +50,36 @@ void setup(void) {
 
 void process_input(void) {
   SDL_Event event;
-  // process all pending events
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
       case SDL_QUIT:is_running = false;
         break;
-
       case SDL_KEYDOWN:
         if (event.key.keysym.sym == SDLK_ESCAPE) {
           is_running = false;
         }
-        //todo:  add more key handling as needed (define constants or enum)
+        if (event.key.keysym.sym == SDLK_1) {
+          render_settings.render_mode = RENDER_MODE_WIRE_FRAME;
+          render_settings.vertex_color = 0xFFFF0000;
+        }
+        if (event.key.keysym.sym == SDLK_2) {
+          render_settings.render_mode = RENDER_MODE_WIRE_FRAME;
+          render_settings.vertex_color = render_settings.frame_color;
+        }
+        if (event.key.keysym.sym == SDLK_3) {
+          render_settings.render_mode = RENDER_MODE_FILLED;
+          render_settings.vertex_color = render_settings.fill_color;
+        }
+        if (event.key.keysym.sym == SDLK_4) {
+          render_settings.render_mode = RENDER_MODE_WIRE_FRAME_FILLED;
+          render_settings.vertex_color = render_settings.frame_color;
+        }
+        if (event.key.keysym.sym == SDLK_c) {
+          render_settings.culling_mode = CULLING_ENABLED;
+        }
+        if (event.key.keysym.sym == SDLK_d) {
+          render_settings.culling_mode = CULLING_DISABLED;
+        }
         break;
     }
   }
@@ -79,7 +105,7 @@ vec2_t project(const vec3_t* point) {
 
 void update(void) {
   // maintain consistent frame rate
-  int elapsed_time = SDL_GetTicks() - previous_frame_time;
+  int elapsed_time = (int) SDL_GetTicks() - previous_frame_time;
   int time_to_wait = FRAME_TARGET_TIME - elapsed_time;
 
   // delay execution if running to fast
@@ -91,7 +117,7 @@ void update(void) {
   triangles_to_render = NULL;
 
   // update previous time frame
-  previous_frame_time = SDL_GetTicks();
+  previous_frame_time = (int) SDL_GetTicks();
 
   // update mesh rotation
   const float rotation_speed = 0.02f;
@@ -128,30 +154,32 @@ void update(void) {
       transformed_vertices[j] = transformed_vertex;
     }
 
-    //check backface culling
-    vec3_t vector_a = transformed_vertices[0]; /*   A   */
-    vec3_t vector_b = transformed_vertices[1]; /*  / \  */
-    vec3_t vector_c = transformed_vertices[2]; /* C---B */
+    if (render_settings.culling_mode == CULLING_ENABLED) {
+      //check backface culling
+      vec3_t vector_a = transformed_vertices[0]; /*   A   */
+      vec3_t vector_b = transformed_vertices[1]; /*  / \  */
+      vec3_t vector_c = transformed_vertices[2]; /* C---B */
 
-    // vector subtraction B-A and C-A
-    vec3_t vector_ab = vec3_sub(vector_b, vector_a);
-    vec3_t vector_ac = vec3_sub(vector_c, vector_a);
-    vec3_normalize(&vector_ab);
-    vec3_normalize(&vector_ac);
+      // vector subtraction B-A and C-A
+      vec3_t vector_ab = vec3_sub(vector_b, vector_a);
+      vec3_t vector_ac = vec3_sub(vector_c, vector_a);
+      vec3_normalize(&vector_ab);
+      vec3_normalize(&vector_ac);
 
-    // compute the face normal (using cross product to find perpendicular)
-    vec3_t normal = vec3_cross(vector_ab, vector_ac); // left-handed coordinate system
-    vec3_normalize(&normal);
+      // compute the face normal (using cross product to find perpendicular)
+      vec3_t normal = vec3_cross(vector_ab, vector_ac); // left-handed coordinate system
+      vec3_normalize(&normal);
 
-    // find vector between a point in the triangle and the camera origin
-    vec3_t camera_ray = vec3_sub(camera_position, vector_a);
+      // find vector between a point in the triangle and the camera origin
+      vec3_t camera_ray = vec3_sub(camera_position, vector_a);
 
-    // compute the alignment of camera ray and face normal (dot product)
-    float face_camera_alignment = vec3_dot(normal, camera_ray);
+      // compute the alignment of camera ray and face normal (dot product)
+      float face_camera_alignment = vec3_dot(normal, camera_ray);
 
-    // bypass triangles that are looking away from the camera
-    if (face_camera_alignment < 0.0f) {
-      continue;
+      // bypass triangles that are looking away from the camera
+      if (face_camera_alignment < 0.0f) {
+        continue;
+      }
     }
 
     // project triangle vertices to 2D space
@@ -160,8 +188,8 @@ void update(void) {
       vec2_t projected_point = project(&transformed_vertices[j]);
 
       // scale and center projected point on screen
-      projected_point.x += (window_width / 2.0f);
-      projected_point.y += (window_height / 2.0f);
+      projected_point.x += ((float) window_width / 2.0f);
+      projected_point.y += ((float) window_height / 2.0f);
 
       // assign projected point to triangle
       projected_triangle.points[j] = projected_point;
@@ -183,31 +211,38 @@ void render(void) {
     const triangle_t* triangle = &triangles_to_render[i];
 
     // draw vertex points of triangle
-    draw_rect(triangle->points[0].x, triangle->points[0].y, 3, 3, 0xff000000);
-    draw_rect(triangle->points[1].x, triangle->points[1].y, 3, 3, 0xff000000);
-    draw_rect(triangle->points[2].x, triangle->points[2].y, 3, 3, 0xff000000);
+    draw_rect((int) triangle->points[0].x, (int) triangle->points[0].y, 3, 3, render_settings.vertex_color);
+    draw_rect((int) triangle->points[1].x, (int) triangle->points[1].y, 3, 3, render_settings.vertex_color);
+    draw_rect((int) triangle->points[2].x, (int) triangle->points[2].y, 3, 3, render_settings.vertex_color);
 
-    // draw filled triangle
-    draw_filled_triangle(
-        triangle->points[0].x,
-        triangle->points[0].y,
-        triangle->points[1].x,
-        triangle->points[1].y,
-        triangle->points[2].x,
-        triangle->points[2].y,
-        0xFFFFFFF
-    );
+    if (render_settings.render_mode == RENDER_MODE_FILLED
+        || render_settings.render_mode == RENDER_MODE_WIRE_FRAME_FILLED) {
+      // draw filled triangle
+      draw_filled_triangle(
+          (int) triangle->points[0].x,
+          (int) triangle->points[0].y,
+          (int) triangle->points[1].x,
+          (int) triangle->points[1].y,
+          (int) triangle->points[2].x,
+          (int) triangle->points[2].y,
+          render_settings.fill_color
+      );
+    }
 
-    // draw unfilled triangle
-    draw_triangle(
-        triangle->points[0].x,
-        triangle->points[0].y,
-        triangle->points[1].x,
-        triangle->points[1].y,
-        triangle->points[2].x,
-        triangle->points[2].y,
-        0xFF000000
-    );
+    if (render_settings.render_mode == RENDER_MODE_WIRE_FRAME
+        || render_settings.render_mode == RENDER_MODE_WIRE_FRAME_FILLED) {
+      // draw unfilled triangle (wireframe)
+      draw_triangle(
+          (int) triangle->points[0].x,
+          (int) triangle->points[0].y,
+          (int) triangle->points[1].x,
+          (int) triangle->points[1].y,
+          (int) triangle->points[2].x,
+          (int) triangle->points[2].y,
+          render_settings.frame_color
+      );
+    }
+
   }
 
   // Clear the array of triangles to render for next frame
@@ -219,7 +254,7 @@ void render(void) {
   // clear color buffer with black color
   clear_color_buffer(0xFF000000);
 
-  // present backbuffer on screen
+  // present back buffer on screen
   SDL_RenderPresent(renderer);
 }
 

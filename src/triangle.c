@@ -98,7 +98,7 @@ void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32
     int_swap(&y1, &y2);
     int_swap(&x1, &x2);
   }
-  // y0 may still end up greater after the above swaps
+  // y0 may still end up greater after swaps above
   if (y0 > y1) {
     int_swap(&y0, &y1);
     int_swap(&x0, &x1);

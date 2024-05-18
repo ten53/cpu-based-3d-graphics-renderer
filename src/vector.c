@@ -16,7 +16,7 @@ vec2_t vec2_add(vec2_t a, vec2_t b) {
   return result;
 }
 
-vec2_t vec2_subtract(vec2_t a, vec2_t b) {
+vec2_t vec2_sub(vec2_t a, vec2_t b) {
   vec2_t result = {
       .x = a.x - b.x,
       .y = a.y - b.y
@@ -40,10 +40,15 @@ vec2_t vec2_div(vec2_t v, float factor) {
   return result;
 }
 
-float vec2_dot(vec2_t a, vec2_t b){
+float vec2_dot(vec2_t a, vec2_t b) {
   return (a.x * b.x) + (a.y * b.y);
 }
 
+void vec2_normalize(vec2_t* v) {
+  float length = sqrt(v->x * v->x + v->y * v->y);
+  v->x / length;
+  v->y / length;
+}
 
 /*
 ********** vector 3D ***********
@@ -62,7 +67,7 @@ vec3_t vec3_add(vec3_t a, vec3_t b) {
   return result;
 }
 
-vec3_t vec3_subtract(vec3_t a, vec3_t b) {
+vec3_t vec3_sub(vec3_t a, vec3_t b) {
   vec3_t result = {
       .x = a.x - b.x,
       .y = a.y - b.y,
@@ -102,6 +107,12 @@ float vec3_dot(vec3_t a, vec3_t b) {
   return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
 }
 
+void vec3_normalize(vec3_t* v) {
+  float length = sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
+  v->x / length;
+  v->y / length;
+  v->z / length;
+}
 // rotate around the x-axis
 vec3_t vec3_rotate_x(vec3_t v, float angle) {
   vec3_t rotated_vector = {

@@ -94,7 +94,7 @@ void update(void) {
   previous_frame_time = SDL_GetTicks();
 
   // update mesh rotation
-  const float rotation_speed = 0.01f;
+  const float rotation_speed = 0.02f;
   mesh.rotation.x += rotation_speed;
   mesh.rotation.y += rotation_speed;
   mesh.rotation.z += rotation_speed;
@@ -183,9 +183,20 @@ void render(void) {
     const triangle_t* triangle = &triangles_to_render[i];
 
     // draw vertex points of triangle
-    draw_rect(triangle->points[0].x, triangle->points[0].y, 3, 3, 0xffff00ff);
-    draw_rect(triangle->points[1].x, triangle->points[1].y, 3, 3, 0xffff00ff);
-    draw_rect(triangle->points[2].x, triangle->points[2].y, 3, 3, 0xffff00ff);
+    draw_rect(triangle->points[0].x, triangle->points[0].y, 3, 3, 0xff000000);
+    draw_rect(triangle->points[1].x, triangle->points[1].y, 3, 3, 0xff000000);
+    draw_rect(triangle->points[2].x, triangle->points[2].y, 3, 3, 0xff000000);
+
+    // draw filled triangle
+    draw_filled_triangle(
+        triangle->points[0].x,
+        triangle->points[0].y,
+        triangle->points[1].x,
+        triangle->points[1].y,
+        triangle->points[2].x,
+        triangle->points[2].y,
+        0xFFFFFFF
+    );
 
     // draw unfilled triangle
     draw_triangle(
@@ -195,9 +206,10 @@ void render(void) {
         triangle->points[1].y,
         triangle->points[2].x,
         triangle->points[2].y,
-        0xFFFF00FF
+        0xFF000000
     );
   }
+
   // Clear the array of triangles to render for next frame
   array_free(triangles_to_render);
 

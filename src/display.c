@@ -116,7 +116,7 @@ void draw_grid(bool dots) {
   }
 }
 
-void draw_pixel(const int x, const int y, const uint32_t color) {
+void draw_pixel(int x, int y, uint32_t color) {
   // keep pixel within screen boundaries
   if (x >= 0 && x < window_width && y >= 0 && y < window_height) {
     color_buffer[(window_width * y) + x] = color;
@@ -156,7 +156,7 @@ void draw_line(int x0, int y0, int x1, int y1, uint32_t color) {
   }
 }
 
-void draw_rect(const int x, const int y, const int width, const int height, const uint32_t color) {
+void draw_rect(int x, int y, int width, int height, uint32_t color) {
   // iterate over width & height of rectangle
   for (int i = 0; i < width; i++) {
     for (int j = 0; j < height; j++) {
@@ -167,13 +167,13 @@ void draw_rect(const int x, const int y, const int width, const int height, cons
   }
 }
 
-void draw_triangle(const int x0,
-                   const int y0,
-                   const int x1,
-                   const int y1,
-                   const int x2,
-                   const int y2,
-                   const uint32_t color) {
+void draw_triangle(int x0,
+                   int y0,
+                   int x1,
+                   int y1,
+                   int x2,
+                   int y2,
+                   uint32_t color) {
   // draw three sides of triangle
   draw_line(x0, y0, x1, y1, color);
   draw_line(x1, y1, x2, y2, color);

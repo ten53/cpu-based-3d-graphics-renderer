@@ -7,6 +7,7 @@
 #include "vector.h"
 #include "mesh.h"
 #include "settings.h"
+#include "sorting.h"
 
 // Array of triangles that should be rendered frame by frame
 triangle_t* triangles_to_render = NULL;
@@ -45,7 +46,9 @@ void setup(void) {
     exit(EXIT_FAILURE);
   }
 
-  load_obj_file_data("../assets/cube.obj");
+  // load vertex and face values for mesh data structure
+  load_cube_mesh_data();
+//    load_obj_file_data("../assets/cube.obj");
 }
 
 void process_input(void) {
@@ -183,21 +186,36 @@ void update(void) {
     }
 
     // project triangle vertices to 2D space
-    triangle_t projected_triangle;
+    vec2_t projected_points[3];
     for (int j = 0; j < 3; j++) {
-      vec2_t projected_point = project(&transformed_vertices[j]);
+      projected_points[j] = project(&transformed_vertices[j]);
 
       // scale and center projected point on screen
-      projected_point.x += ((float) window_width / 2.0f);
-      projected_point.y += ((float) window_height / 2.0f);
-
-      // assign projected point to triangle
-      projected_triangle.points[j] = projected_point;
+      projected_points[j].x += ((float) window_width / 2.0f);
+      projected_points[j].y += ((float) window_height / 2.0f);
     }
+
+    // calculate the average depth for each face based on the vertices z-value after transformation
+    float avg_depth = (float) (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3;
+
+    // assign projected points to triangle
+    triangle_t projected_triangle = {
+        .points = {
+            {projected_points[0].x, projected_points[0].y},
+            {projected_points[1].x, projected_points[1].y},
+            {projected_points[2].x, projected_points[2].y},
+        },
+        .color = mesh_face.color,
+        .avg_depth = avg_depth
+    };
 
     // add projected triangle to array of triangles to render
     array_push(triangles_to_render, projected_triangle);
   }
+
+  // Sort the triangles to render by their avg_depth
+  quicksort(triangles_to_render, 0, array_length(triangles_to_render) - 1, compare_triangle_depth);
+
 }
 
 void render(void) {
@@ -225,7 +243,8 @@ void render(void) {
           (int) triangle->points[1].y,
           (int) triangle->points[2].x,
           (int) triangle->points[2].y,
-          render_settings.fill_color
+          triangle->color
+//          render_settings.fill_color
       );
     }
 

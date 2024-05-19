@@ -7,6 +7,7 @@ void int_swap(int* a, int* b) {
   *b = tmp;
 }
 
+
 // draw a filled a triangle with a flat bottom
 //
 //        (x0,y0)

@@ -46,8 +46,8 @@ float vec2_dot(vec2_t a, vec2_t b) {
 
 void vec2_normalize(vec2_t* v) {
   float length = sqrt(v->x * v->x + v->y * v->y);
-  v->x / length;
-  v->y / length;
+  v->x /= length;
+  v->y /= length;
 }
 
 /*
@@ -109,9 +109,9 @@ float vec3_dot(vec3_t a, vec3_t b) {
 
 void vec3_normalize(vec3_t* v) {
   float length = sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
-  v->x / length;
-  v->y / length;
-  v->z / length;
+  v->x /= length;
+  v->y /= length;
+  v->z /= length;
 }
 // rotate around the x-axis
 vec3_t vec3_rotate_x(vec3_t v, float angle) {

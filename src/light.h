@@ -1,5 +1,5 @@
 #ifndef LIGHT_H
-#define SRC_LIGHT_H
+#define LIGHT_H
 
 #include <stdint.h>
 #include "vector.h"

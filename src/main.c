@@ -10,6 +10,8 @@
 #include "sorting.h"
 #include "matrix.h"
 #include "light.h"
+#include "texture.h"
+#include "triangle.h"
 
 // Array of triangles that should be rendered frame by frame
 triangle_t* triangles_to_render = NULL;
@@ -21,11 +23,12 @@ render_settings_t render_settings;
 
 void setup(void) {
   // init render settings
-  render_settings.render_mode = RENDER_MODE_WIRE_FRAME;
+  render_settings.render_mode = RENDER_MODE_FILLED;
   render_settings.culling_mode = CULLING_ENABLED;
-  render_settings.vertex_color = 0xFFFFFFFF;
+  render_settings.vertex_color = 0xFFFF0000;
   render_settings.fill_color = 0xFFAF3895;
   render_settings.frame_color = 0xFFFFFFFF;
+
 
   // allocate memory for the color buffer
   color_buffer = (uint32_t*) malloc(sizeof(uint32_t) * window_width * window_height);
@@ -55,9 +58,15 @@ void setup(void) {
   float zfar = 100.0f;
   projection_matrix = mat4_create_perspective(fov, aspect, znear, zfar);
 
+  // manually load hardcoded texture data from static array
+  mesh_texture = (uint32_t*) REDBRICK_TEXTURE;
+  texture_width = 64;
+  texture_height = 64;
+
   // load vertex and face values for mesh data structure
-//  load_cube_mesh_data();
-  load_obj_file_data("../assets/f22.obj");
+  load_cube_mesh_data();
+   // load_obj_file_data("../assets/f22.obj");
+
 }
 
 void process_input(void) {
@@ -71,20 +80,22 @@ void process_input(void) {
           is_running = false;
         }
         if (event.key.keysym.sym == SDLK_1) {
-          render_settings.render_mode = RENDER_MODE_WIRE_FRAME;
-          render_settings.vertex_color = 0xFFFF0000;
+          render_settings.render_mode = RENDER_MODE_WIRE_FRAME_VERTEX;
         }
         if (event.key.keysym.sym == SDLK_2) {
           render_settings.render_mode = RENDER_MODE_WIRE_FRAME;
-          render_settings.vertex_color = render_settings.frame_color;
         }
         if (event.key.keysym.sym == SDLK_3) {
           render_settings.render_mode = RENDER_MODE_FILLED;
-          render_settings.vertex_color = render_settings.frame_color;
         }
         if (event.key.keysym.sym == SDLK_4) {
           render_settings.render_mode = RENDER_MODE_WIRE_FRAME_FILLED;
-          render_settings.vertex_color = render_settings.frame_color;
+        }
+        if (event.key.keysym.sym == SDLK_5) {
+          render_settings.render_mode = RENDER_MODE_TEXTURED;
+        }
+        if (event.key.keysym.sym == SDLK_6) {
+          render_settings.render_mode = RENDER_MODE_TEXTURED_WIRE_FRAME;
         }
         if (event.key.keysym.sym == SDLK_c) {
           render_settings.culling_mode = CULLING_ENABLED;
@@ -224,6 +235,12 @@ void update(void) {
             {projected_points[1].x, projected_points[1].y},
             {projected_points[2].x, projected_points[2].y},
         },
+        .tex_coords = {
+            {mesh_face.a_uv.u, mesh_face.a_uv.u},
+            {mesh_face.b_uv.u, mesh_face.b_uv.u},
+            {mesh_face.c_uv.u, mesh_face.c_uv.u},
+
+        },
         .color = triangle_color,
         .avg_depth = avg_depth
     };
@@ -246,29 +263,46 @@ void render(void) {
     // gert current triangle
     const triangle_t* triangle = &triangles_to_render[i];
 
-    // draw vertex points of triangle
-    draw_rect((int) triangle->points[0].x, (int) triangle->points[0].y, 3, 3, render_settings.vertex_color);
-    draw_rect((int) triangle->points[1].x, (int) triangle->points[1].y, 3, 3, render_settings.vertex_color);
-    draw_rect((int) triangle->points[2].x, (int) triangle->points[2].y, 3, 3, render_settings.vertex_color);
-
+    // draw filled triangle
     if (render_settings.render_mode == RENDER_MODE_FILLED
         || render_settings.render_mode == RENDER_MODE_WIRE_FRAME_FILLED) {
-      // draw filled triangle
       draw_filled_triangle(
           (int) triangle->points[0].x,
-          (int) triangle->points[0].y,
+          (int) triangle->points[0].y, // vertex A
           (int) triangle->points[1].x,
-          (int) triangle->points[1].y,
+          (int) triangle->points[1].y, // vertex B
           (int) triangle->points[2].x,
-          (int) triangle->points[2].y,
+          (int) triangle->points[2].y, // vertex C
           triangle->color
-//          render_settings.fill_color
+          // render_settings.fill_color
       );
     }
 
+    // draw textured triangle
+    if (render_settings.render_mode == RENDER_MODE_TEXTURED
+        || render_settings.render_mode == RENDER_MODE_TEXTURED_WIRE_FRAME) {
+      draw_textured_triangle(
+          (int) triangle->points[0].x,
+          (int) triangle->points[0].y,
+          triangle->tex_coords[0].u,
+          triangle->tex_coords[0].v, // vertex A
+          (int) triangle->points[1].x,
+          (int) triangle->points[1].y,
+          triangle->tex_coords[1].u,
+          triangle->tex_coords[1].v, // vertex B
+          (int) triangle->points[2].x,
+          (int) triangle->points[2].y,
+          triangle->tex_coords[2].u,
+          triangle->tex_coords[2].v, // vertex C
+          mesh_texture
+      );
+    }
+
+    // draw triangle wireframe
     if (render_settings.render_mode == RENDER_MODE_WIRE_FRAME
-        || render_settings.render_mode == RENDER_MODE_WIRE_FRAME_FILLED) {
-      // draw unfilled triangle (wireframe)
+        || render_settings.render_mode == RENDER_MODE_WIRE_FRAME_VERTEX
+        || render_settings.render_mode == RENDER_MODE_WIRE_FRAME_FILLED
+        || render_settings.render_mode == RENDER_MODE_TEXTURED_WIRE_FRAME) {
       draw_triangle(
           (int) triangle->points[0].x,
           (int) triangle->points[0].y,
@@ -278,6 +312,13 @@ void render(void) {
           (int) triangle->points[2].y,
           render_settings.frame_color
       );
+    }
+
+    // draw vertex points of triangle
+    if (render_settings.render_mode == RENDER_MODE_WIRE_FRAME_VERTEX) {
+      draw_rect((int) triangle->points[0].x - 3, (int) triangle->points[0].y - 3, 3, 3, render_settings.vertex_color);
+      draw_rect((int) triangle->points[1].x - 3, (int) triangle->points[1].y - 3, 3, 3, render_settings.vertex_color);
+      draw_rect((int) triangle->points[2].x - 3, (int) triangle->points[2].y - 3, 3, 3, render_settings.vertex_color);
     }
 
   }

@@ -125,7 +125,7 @@ void update(void) {
   previous_frame_time = (int) SDL_GetTicks();
 
   // update mesh rotation, translation, & scale values per animation frame
-  mesh.rotation.x += 0.01f;
+//  mesh.rotation.x += 0.01f;
 //  mesh.rotation.y += 0.02f;
 //  mesh.rotation.z += 0.02f;
 //  mesh.scale.x += 0.002f;

@@ -38,11 +38,8 @@ void draw_texel(int x,
                 vec4_t point_a,
                 vec4_t point_b,
                 vec4_t point_c,
-                float u0,
-                float v0,
-                float u1,
-                float v1,
-                float u2,
-                float v2);
+                tex2_t a_uv,
+                tex2_t b_uv,
+                tex2_t c_uv);
 
 #endif

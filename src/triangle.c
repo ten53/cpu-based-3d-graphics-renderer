@@ -177,7 +177,8 @@ vec3_t barycentric_weights(vec2_t a, vec2_t b, vec2_t c, vec2_t p) {
 void draw_texel(
     int x, int y, uint32_t* texture,
     vec4_t point_a, vec4_t point_b, vec4_t point_c,
-    float u0, float v0, float u1, float v1, float u2, float v2
+    tex2_t a_uv, tex2_t b_uv, tex2_t c_uv
+
 ) {
   vec2_t p = {x, y};
   vec2_t a = vec2_from_vec4(point_a);
@@ -196,8 +197,8 @@ void draw_texel(
 
 
   // perform the interpolation of all U/w and V/w values using barycentric weights and a factor of 1/w
-  interpolated_u = (u0 / point_a.w) * alpha + (u1 / point_b.w) * beta + (u2 / point_c.w) * gamma;
-  interpolated_v = (v0 / point_a.w) * alpha + (v1 / point_b.w) * beta + (v2 / point_c.w) * gamma;
+  interpolated_u = (a_uv.u / point_a.w) * alpha + (b_uv.u / point_b.w) * beta + (c_uv.u / point_c.w) * gamma;
+  interpolated_v = (a_uv.v / point_a.w) * alpha + (b_uv.v / point_b.w) * beta + (c_uv.v / point_c.w) * gamma;
 
   // interpolate value of 1/w for the current pixel
   interpolated_reciprocal_w = (1 / point_a.w) * alpha + (1 / point_b.w) * beta + (1 / point_c.w) * gamma;
@@ -267,6 +268,9 @@ void draw_textured_triangle(
   vec4_t point_a = {x0, y0, z0, w0};
   vec4_t point_b = {x1, y1, z1, w1};
   vec4_t point_c = {x2, y2, z2, w2};
+  tex2_t a_uv = {u0, v0};
+  tex2_t b_uv = {u1, v1};
+  tex2_t c_uv = {u2, v2};
 
   // render upper part of triangle (flat-bottom)
   float inv_slope_1 = 0;
@@ -286,7 +290,7 @@ void draw_textured_triangle(
       }
       for (int x = x_start; x < x_end; x++) {
         // draw pixel with color from texture
-        draw_texel(x, y, texture, point_a, point_b, point_c, u0, v0, u1, v1, u2, v2);
+        draw_texel(x, y, texture, point_a, point_b, point_c, a_uv, b_uv, c_uv);
       }
     }
   }
@@ -309,7 +313,7 @@ void draw_textured_triangle(
       }
       for (int x = x_start; x < x_end; x++) {
         // draw pixel with color from texture
-        draw_texel(x, y, texture, point_a, point_b, point_c, u0, v0, u1, v1, u2, v2);
+        draw_texel(x, y, texture, point_a, point_b, point_c, a_uv, b_uv, c_uv);
       }
     }
   }

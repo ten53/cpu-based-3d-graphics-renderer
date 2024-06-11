@@ -65,7 +65,7 @@ void setup(void) {
 
   // load vertex and face values for mesh data structure
   load_cube_mesh_data();
-   // load_obj_file_data("../assets/f22.obj");
+//   load_obj_file_data("../assets/f22.obj");
 
 }
 
@@ -126,7 +126,7 @@ void update(void) {
 
   // update mesh rotation, translation, & scale values per animation frame
 //  mesh.rotation.x += 0.01f;
-//  mesh.rotation.y += 0.02f;
+  mesh.rotation.y += 0.02f;
 //  mesh.rotation.z += 0.02f;
 //  mesh.scale.x += 0.002f;
 //  mesh.scale.y += 0.001f;
@@ -231,14 +231,14 @@ void update(void) {
     // assign projected points to triangle
     triangle_t projected_triangle = {
         .points = {
-            {projected_points[0].x, projected_points[0].y},
-            {projected_points[1].x, projected_points[1].y},
-            {projected_points[2].x, projected_points[2].y},
+            {projected_points[0].x, projected_points[0].y, projected_points[0].z, projected_points[0].w},
+            {projected_points[1].x, projected_points[1].y, projected_points[1].z, projected_points[1].w},
+            {projected_points[2].x, projected_points[2].y, projected_points[2].z, projected_points[2].w},
         },
         .tex_coords = {
-            {mesh_face.a_uv.u, mesh_face.a_uv.u},
-            {mesh_face.b_uv.u, mesh_face.b_uv.u},
-            {mesh_face.c_uv.u, mesh_face.c_uv.u},
+            {mesh_face.a_uv.u, mesh_face.a_uv.v},
+            {mesh_face.b_uv.u, mesh_face.b_uv.v},
+            {mesh_face.c_uv.u, mesh_face.c_uv.v}
 
         },
         .color = triangle_color,
@@ -267,12 +267,9 @@ void render(void) {
     if (render_settings.render_mode == RENDER_MODE_FILLED
         || render_settings.render_mode == RENDER_MODE_WIRE_FRAME_FILLED) {
       draw_filled_triangle(
-          (int) triangle->points[0].x,
-          (int) triangle->points[0].y, // vertex A
-          (int) triangle->points[1].x,
-          (int) triangle->points[1].y, // vertex B
-          (int) triangle->points[2].x,
-          (int) triangle->points[2].y, // vertex C
+          (int) triangle->points[0].x, (int) triangle->points[0].y, // vertex A
+          (int) triangle->points[1].x, (int) triangle->points[1].y, // vertex B
+          (int) triangle->points[2].x, (int) triangle->points[2].y, // vertex C
           triangle->color
           // render_settings.fill_color
       );
@@ -284,14 +281,20 @@ void render(void) {
       draw_textured_triangle(
           (int) triangle->points[0].x,
           (int) triangle->points[0].y,
+          triangle->points[0].z,
+          triangle->points[0].w,
           triangle->tex_coords[0].u,
           triangle->tex_coords[0].v, // vertex A
           (int) triangle->points[1].x,
           (int) triangle->points[1].y,
+          triangle->points[1].z,
+          triangle->points[1].w,
           triangle->tex_coords[1].u,
           triangle->tex_coords[1].v, // vertex B
           (int) triangle->points[2].x,
           (int) triangle->points[2].y,
+          triangle->points[2].z,
+          triangle->points[2].w,
           triangle->tex_coords[2].u,
           triangle->tex_coords[2].v, // vertex C
           mesh_texture
@@ -316,9 +319,9 @@ void render(void) {
 
     // draw vertex points of triangle
     if (render_settings.render_mode == RENDER_MODE_WIRE_FRAME_VERTEX) {
-      draw_rect((int) triangle->points[0].x - 3, (int) triangle->points[0].y - 3, 3, 3, render_settings.vertex_color);
-      draw_rect((int) triangle->points[1].x - 3, (int) triangle->points[1].y - 3, 3, 3, render_settings.vertex_color);
-      draw_rect((int) triangle->points[2].x - 3, (int) triangle->points[2].y - 3, 3, 3, render_settings.vertex_color);
+      draw_rect((int) triangle->points[0].x - 3, (int) triangle->points[0].y - 3, 6, 6, render_settings.vertex_color);
+      draw_rect((int) triangle->points[1].x - 3, (int) triangle->points[1].y - 3, 6, 6, render_settings.vertex_color);
+      draw_rect((int) triangle->points[2].x - 3, (int) triangle->points[2].y - 3, 6, 6, render_settings.vertex_color);
     }
 
   }

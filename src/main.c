@@ -12,6 +12,7 @@
 #include "light.h"
 #include "texture.h"
 #include "triangle.h"
+#include "upng.h"
 
 // Array of triangles that should be rendered frame by frame
 triangle_t* triangles_to_render = NULL;
@@ -40,7 +41,7 @@ void setup(void) {
   // create an SDL texture to display the color buffer
   color_buffer_texture = SDL_CreateTexture(
       renderer,
-      SDL_PIXELFORMAT_ARGB8888,
+      SDL_PIXELFORMAT_RGBA32,
       SDL_TEXTUREACCESS_STREAMING,
       window_width,
       window_height);
@@ -58,14 +59,12 @@ void setup(void) {
   float zfar = 100.0f;
   projection_matrix = mat4_create_perspective(fov, aspect, znear, zfar);
 
-  // manually load hardcoded texture data from static array
-  mesh_texture = (uint32_t*) REDBRICK_TEXTURE;
-  texture_width = 64;
-  texture_height = 64;
-
   // load vertex and face values for mesh data structure
   load_cube_mesh_data();
-//   load_obj_file_data("../assets/f22.obj");
+   load_obj_file_data("../assets/cube.obj");
+
+// load texture information from external PNG file
+load_png_texture_data("../assets/cube.png");
 
 }
 
@@ -342,6 +341,7 @@ void render(void) {
 // free dynamically allocated memory
 void free_resources(void) {
   free(color_buffer);
+  upng_free(png_texture);
   array_free(mesh.faces);
   array_free(mesh.vertices);
 }

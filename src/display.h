@@ -5,7 +5,11 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 
-// globals
+
+#define FPS 30
+#define FRAME_TARGET_TIME (1000 / FPS)
+
+
 extern SDL_Window* window;
 extern SDL_Renderer* renderer;
 extern int window_width;
@@ -13,7 +17,6 @@ extern int window_height;
 extern uint32_t* color_buffer;  // frame buffer
 extern SDL_Texture* color_buffer_texture;
 
-// signatures
 bool  initialize_window(void);
 void draw_grid(void);
 void draw_pixel(int x, int y, uint32_t color);

@@ -147,5 +147,8 @@ vec3_t vec3_from_vec4(vec4_t v) {
     return result;
 }
 
-
+vec2_t vec2_from_vec4(vec4_t v) {
+    vec2_t result = { v.x, v.y };
+    return result;
+}
 

@@ -6,18 +6,23 @@
 #include "mesh.h"
 #include "array.h"
 #include "matrix.h"
+#include "light.h"
+#include "texture.h"
+#include "triangle.h"
 
 
-// array of triangles to render frame by frame
+// ----- ARRAY OF TRIANGLES TO RENDER FRAME BY FRAME -----
 triangle_t* triangles_to_render = NULL;
 
-// globals for execution status and game loop
+
+// ----- GLOBAL VARIABLES FOR EXECUTION STATUS & GAME LOOP -----
 bool is_running = false;
 int previous_frame_time = 0;
 vec3_t camera_position = { .x = 0, .y = 0, .z = 0 };   // origin
 mat4_t proj_matrix;
 
-// initialize variables and game functions
+
+// ----- INIT VARIABLES & GAME FUNCTIONS
 void setup(void) {
     // initialize render mode and triangle culling method
     render_method = RENDER_WIRE;
@@ -43,14 +48,18 @@ void setup(void) {
     float zfar = 100.0;
     proj_matrix = mat4_make_perspective(fov, aspect, znear, zfar);
 
-    // initialize hardcoded cube mesh (if there is no obj file)
-    load_cube_mesh_data();
+    // manually load harcoded texture data from static array
+    mesh_texture = (uint32_t*) REDBRICK_TEXTURE;
+    texture_width = 64;
+    texture_height = 64;
 
-    // load_obj_file_data("./assets/cube.obj");
+    // load vertex and face values for mesh data structure
+    load_cube_mesh_data();   // hardcoded values
+    // load_obj_file_data("./assets/f22.obj");
 }
 
 
-// poll system events and handle keyboard input
+// ----- SYSTEM EVENTS & KEYBOARD INPUT -----
 void process_input(void) {
     SDL_Event event;
     SDL_PollEvent(&event);
@@ -69,6 +78,10 @@ void process_input(void) {
                 render_method = RENDER_FILL_TRIANGLE;
             if (event.key.keysym.sym == SDLK_4)
                 render_method = RENDER_FILL_TRIANGLE_WIRE;
+            if (event.key.keysym.sym == SDLK_5)
+                render_method = RENDER_TEXTURED;
+            if (event.key.keysym.sym == SDLK_6)
+                render_method = RENDER_TEXTURED_WIRE;
             if (event.key.keysym.sym == SDLK_c)
                 cull_method = CULL_BACKFACE;
             if (event.key.keysym.sym == SDLK_d)
@@ -78,6 +91,7 @@ void process_input(void) {
 }
 
 
+// ----- UPDATE FRAME BY FRAME WITH FIXED TIME STEP -----
 void update(void) {
     // sleep until target frame time (millisec) is reached
     int time_to_wait = FRAME_TARGET_TIME - (SDL_GetTicks() - previous_frame_time);
@@ -93,9 +107,9 @@ void update(void) {
     triangles_to_render = NULL;
 
     // scale, rotate, and translate values per animation frame
-    mesh.rotation.x += 0.01;
-    mesh.rotation.y += 0.01;
-    mesh.rotation.z += 0.01;
+    mesh.rotation.x += 0.005;
+    // mesh.rotation.y += 0.0;
+    // mesh.rotation.z += 0.0;
 
     mesh.scale.x += 0.0;
     mesh.scale.y += 0.0;
@@ -109,7 +123,7 @@ void update(void) {
     mat4_t rotation_matrix_z = mat4_make_rotation_z(mesh.rotation.z);
     mat4_t translation_matrix = mat4_make_translation(mesh.translation.x, mesh.translation.y, mesh.translation.z);
 
-    // loop all triangle faces of our mesh
+    // loop all triangle faces of mesh
     int num_faces = array_length(mesh.faces);
     for (int i = 0; i < num_faces; i++) {
         face_t mesh_face = mesh.faces[i];
@@ -145,7 +159,7 @@ void update(void) {
             transformed_vertices[j] = transformed_vertex;
         }
 
-        // backface culling
+        // get vectors from A,B,C to calculate normal
         vec3_t vector_a = vec3_from_vec4(transformed_vertices[0]);  /*    A     */
         vec3_t vector_b = vec3_from_vec4(transformed_vertices[1]);  /*   / \    */
         vec3_t vector_c = vec3_from_vec4(transformed_vertices[2]);  /*  C---B  */
@@ -156,10 +170,8 @@ void update(void) {
         vec3_normalize(&vector_ab);
         vec3_normalize(&vector_ac);
 
-        // calculate face normal using cross product to find perpendicular
-        // in a left-handed coordinate system
+        // calculate face normal using cross product to find perpendicular in a left-handed coordinate system
         vec3_t normal = vec3_cross(vector_ab, vector_ac);  // opposite order 'vec3_cross(vector_ac, vector_ab)' for a right-handed coordinate system!
-        // normalize face normal vector
         vec3_normalize(&normal);
 
         // find vector between point in triangle and camera origin
@@ -168,9 +180,12 @@ void update(void) {
         // calculate alignement of camera ray with face normal using dot product
         float dot_normal_camera = vec3_dot(normal, camera_ray);
 
-        // bypass projection of triangles that are looking away from camera
-        if (dot_normal_camera < 0) {
-            continue;
+        // backface culling test
+        if (cull_method == CULL_BACKFACE) {
+            // bypass projection of triangles that are looking away from camera
+            if (dot_normal_camera < 0) {
+                continue;
+            }
         }
 
         // projection
@@ -182,9 +197,13 @@ void update(void) {
             // project current vertex
             projected_points[j] = mat4_mul_vec4_project(proj_matrix, transformed_vertices[j]);
 
+            // flip vertically since y values of 3D mesh grow bottom->up and in screen space y values grow top->down
+            projected_points[j].y *= -1;
+
             // scale into the view
-            projected_points[j].x *= (/* window_width */ window_height / 2.0); // TODO: scaling x by window height instead of width to get a cube (screen ratio), need to fix that
+            projected_points[j].x *= (window_width / 2.0);
             projected_points[j].y *= (window_height / 2.0);
+
 
             // translate projected points to center of screen
             projected_points[j].x += (window_width / 2.0);
@@ -195,25 +214,37 @@ void update(void) {
         float avg_depth = (transformed_vertices[0].z + transformed_vertices
             [1].z + transformed_vertices[2].z) / 3.0;
 
+        // calculate shade intensity based on alignment of face normal and the inverse of the light ray
+        float light_intensity_factor = -vec3_dot(normal, light.direction);
+
+        // calculate triangle color based on angle of light
+        uint32_t triangle_color = light_apply_intensity(mesh_face.color,light_intensity_factor );
+
             triangle_t projected_triangle = {
-                .points = {
-                    { projected_points[0].x, projected_points[0].y },
-                    { projected_points[1].x, projected_points[1].y },
-                    { projected_points[2].x, projected_points[2].y },
+               .points = {
+                { projected_points[0].x, projected_points[0].y, projected_points[0].z, projected_points[0].w },
+                { projected_points[1].x, projected_points[1].y, projected_points[1].z, projected_points[1].w },
+                { projected_points[2].x, projected_points[2].y, projected_points[2].z, projected_points[2].w },
+            },
+                .texcoords = {
+                    { mesh_face.a_uv.u, mesh_face.a_uv.v },
+                    { mesh_face.b_uv.u, mesh_face.b_uv.v },
+                    { mesh_face.c_uv.u, mesh_face.c_uv.v }
                 },
-                .color = mesh_face.color,
+                .color = triangle_color,
                 .avg_depth = avg_depth
             };
 
         // save current projected triangle in the array of triangles to render
         array_push(triangles_to_render, projected_triangle);
         }
+
     // sort triangles to render by avg depth (painters algorithm)
     int num_triangles = array_length(triangles_to_render);
     for (int i = 0; i < num_triangles; i++) {
-        for (int j = 0; j < num_triangles; j++) {
+        for (int j = i; j < num_triangles; j++) {
             if (triangles_to_render[i].avg_depth < triangles_to_render[j].avg_depth) {
-                // swap triangles position in the array
+                // swap triangles positions in the array
                 triangle_t temp = triangles_to_render[i];
                 triangles_to_render[i] = triangles_to_render[j];
                 triangles_to_render[j] = temp;
@@ -223,7 +254,7 @@ void update(void) {
 }
 
 
-// draw obects on display
+// ----- DRAW OBJECTS ON DISPLAY -----
 void render(void) {
     draw_grid();
 
@@ -242,8 +273,17 @@ void render(void) {
             );
         }
 
+        // draw textured triangle
+           if (render_method == RENDER_TEXTURED || render_method == RENDER_TEXTURED_WIRE) {
+           draw_textured_triangle(
+                triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w, triangle.texcoords[0].u, triangle.texcoords[0].v, // vertex A
+                triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w, triangle.texcoords[1].u, triangle.texcoords[1].v, // vertex B
+                triangle.points[2].x, triangle.points[2].y, triangle.points[2].z, triangle.points[2].w, triangle.texcoords[2].u, triangle.texcoords[2].v, // vertex C
+                mesh_texture
+            );        }
+
         // draw triangle wireframe
-        if (render_method == RENDER_WIRE || render_method == RENDER_WIRE_VERTEX || render_method == RENDER_FILL_TRIANGLE_WIRE) {
+        if (render_method == RENDER_WIRE || render_method == RENDER_WIRE_VERTEX || render_method == RENDER_FILL_TRIANGLE_WIRE || render_method == RENDER_TEXTURED_WIRE) {
             draw_triangle(
                 triangle.points[0].x, triangle.points[0].y, // vertex A
                 triangle.points[1].x, triangle.points[1].y, // vertex B
@@ -271,14 +311,15 @@ void render(void) {
 }
 
 
-// free all dynamically allocated memory
+// ----- FREE ALL DYNAMICALLY ALLOCATED MEMORY -----
 void free_resources(void) {
     free(color_buffer);
     array_free(mesh.faces);
     array_free(mesh.vertices);
 }
 
-// entry point
+
+// ----- ENTRY POINT -----
 int main(void) {
     is_running = initialize_window();
 

@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #include <SDL2/SDL.h>
 #include <stdbool.h>
 #include "display.h"
@@ -107,8 +108,8 @@ void update(void) {
     triangles_to_render = NULL;
 
     // scale, rotate, and translate values per animation frame
-    mesh.rotation.x += 0.005;
-    // mesh.rotation.y += 0.0;
+    // mesh.rotation.x += 0.005;
+     mesh.rotation.y += 0.005;
     // mesh.rotation.z += 0.0;
 
     mesh.scale.x += 0.0;
@@ -201,7 +202,7 @@ void update(void) {
             projected_points[j].y *= -1;
 
             // scale into the view
-            projected_points[j].x *= (window_width / 2.0);
+            projected_points[j].x *= ( /* window_width */ window_height / 2.0); // TODO: this is a hacky fix, window height instead to get a 'perfect' cube due to my screen ratio. Needs fixing.
             projected_points[j].y *= (window_height / 2.0);
 
 
@@ -211,8 +212,7 @@ void update(void) {
         }
 
         // calculate avg depth for each face based on vertices after transformation
-        float avg_depth = (transformed_vertices[0].z + transformed_vertices
-            [1].z + transformed_vertices[2].z) / 3.0;
+        float avg_depth = (transformed_vertices[0].z + transformed_vertices[1].z + transformed_vertices[2].z) / 3.0;
 
         // calculate shade intensity based on alignment of face normal and the inverse of the light ray
         float light_intensity_factor = -vec3_dot(normal, light.direction);
@@ -220,20 +220,20 @@ void update(void) {
         // calculate triangle color based on angle of light
         uint32_t triangle_color = light_apply_intensity(mesh_face.color,light_intensity_factor );
 
-            triangle_t projected_triangle = {
-               .points = {
+        triangle_t projected_triangle = {
+            .points = {
                 { projected_points[0].x, projected_points[0].y, projected_points[0].z, projected_points[0].w },
                 { projected_points[1].x, projected_points[1].y, projected_points[1].z, projected_points[1].w },
                 { projected_points[2].x, projected_points[2].y, projected_points[2].z, projected_points[2].w },
             },
-                .texcoords = {
-                    { mesh_face.a_uv.u, mesh_face.a_uv.v },
-                    { mesh_face.b_uv.u, mesh_face.b_uv.v },
-                    { mesh_face.c_uv.u, mesh_face.c_uv.v }
-                },
-                .color = triangle_color,
-                .avg_depth = avg_depth
-            };
+            .texcoords = {
+                { mesh_face.a_uv.u, mesh_face.a_uv.v },
+                { mesh_face.b_uv.u, mesh_face.b_uv.v },
+                { mesh_face.c_uv.u, mesh_face.c_uv.v }
+            },
+            .color = triangle_color,
+            .avg_depth = avg_depth
+        };
 
         // save current projected triangle in the array of triangles to render
         array_push(triangles_to_render, projected_triangle);
@@ -256,9 +256,10 @@ void update(void) {
 
 // ----- DRAW OBJECTS ON DISPLAY -----
 void render(void) {
+    SDL_RenderClear(renderer);
     draw_grid();
 
-   // loop all projected triangles and render them
+    // loop all projected triangles and render them
     int num_triangles = array_length(triangles_to_render);
     for (int i = 0; i < num_triangles; i++) {
         triangle_t triangle = triangles_to_render[i];
@@ -274,13 +275,14 @@ void render(void) {
         }
 
         // draw textured triangle
-           if (render_method == RENDER_TEXTURED || render_method == RENDER_TEXTURED_WIRE) {
-           draw_textured_triangle(
+        if (render_method == RENDER_TEXTURED || render_method == RENDER_TEXTURED_WIRE) {
+            draw_textured_triangle(
                 triangle.points[0].x, triangle.points[0].y, triangle.points[0].z, triangle.points[0].w, triangle.texcoords[0].u, triangle.texcoords[0].v, // vertex A
                 triangle.points[1].x, triangle.points[1].y, triangle.points[1].z, triangle.points[1].w, triangle.texcoords[1].u, triangle.texcoords[1].v, // vertex B
                 triangle.points[2].x, triangle.points[2].y, triangle.points[2].z, triangle.points[2].w, triangle.texcoords[2].u, triangle.texcoords[2].v, // vertex C
                 mesh_texture
-            );        }
+            );
+        }
 
         // draw triangle wireframe
         if (render_method == RENDER_WIRE || render_method == RENDER_WIRE_VERTEX || render_method == RENDER_FILL_TRIANGLE_WIRE || render_method == RENDER_TEXTURED_WIRE) {

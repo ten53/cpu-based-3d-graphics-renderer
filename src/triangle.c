@@ -171,30 +171,30 @@ void draw_texel(
     vec2_t b = vec2_from_vec4(point_b);
     vec2_t c = vec2_from_vec4(point_c);
 
-    // calculate barycentric coordinates of point 'p' inside triangle
+    // Calculate the barycentric coordinates of our point 'p' inside the triangle
     vec3_t weights = barycentric_weights(a, b, c, p);
 
     float alpha = weights.x;
     float beta = weights.y;
     float gamma = weights.z;
 
-    // variables to store interpolated values of U, V, and 1/w for current pixel
+    // Variables to store the interpolated values of U, V, and also 1/w for the current pixel
     float interpolated_u;
     float interpolated_v;
     float interpolated_reciprocal_w;
 
-    // perform interpolation of all U/w and V/w values using barycentric weights and a factor of 1/w
+    // Perform the interpolation of all U/w and V/w values using barycentric weights and a factor of 1/w
     interpolated_u = (a_uv.u / point_a.w) * alpha + (b_uv.u / point_b.w) * beta + (c_uv.u / point_c.w) * gamma;
     interpolated_v = (a_uv.v / point_a.w) * alpha + (b_uv.v / point_b.w) * beta + (c_uv.v / point_c.w) * gamma;
 
-    // also interpolate value of 1/w for current pixel
+    // Also interpolate the value of 1/w for the current pixel
     interpolated_reciprocal_w = (1 / point_a.w) * alpha + (1 / point_b.w) * beta + (1 / point_c.w) * gamma;
 
-    // divide back both interpolated values by 1/w
+    // Now we can divide back both interpolated values by 1/w
     interpolated_u /= interpolated_reciprocal_w;
     interpolated_v /= interpolated_reciprocal_w;
 
-    // map UV coordinate to full texture width and height
+    // Map the UV coordinate to the full texture width and height
     int tex_x = abs((int)(interpolated_u * texture_width));
     int tex_y = abs((int)(interpolated_v * texture_height));
 
@@ -251,7 +251,7 @@ void draw_textured_triangle(
         float_swap(&v0, &v1);
     }
 
-    // create vector points and texture coords after sorting vertices
+    // create vector points and texture coords after sorting the vertices
     vec4_t point_a = { x0, y0, z0, w0 };
     vec4_t point_b = { x1, y1, z1, w1 };
     vec4_t point_c = { x2, y2, z2, w2 };

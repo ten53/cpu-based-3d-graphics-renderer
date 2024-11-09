@@ -57,11 +57,11 @@ void setup(void) {
     // texture_height = 64;
 
     // load vertex and face values for mesh data structure
-    load_cube_mesh_data();   // hardcoded values
-    // load_obj_file_data("./assets/f22.obj");
+    // load_cube_mesh_data();   // hardcoded values
+    load_obj_file_data("./assets/f22.obj");
 
     // load texture information from an external PNG file
-    load_png_texture_data("/Users/ten53/Developer/cpu-based-3d-graphics-renderer/assets/cube.png");
+    load_png_texture_data("/Users/ten53/Developer/cpu-based-3d-graphics-renderer/assets/f22.png");
 }
 
 
@@ -113,8 +113,8 @@ void update(void) {
     triangles_to_render = NULL;
 
     // scale, rotate, and translate values per animation frame
-    // mesh.rotation.x += 0.005;
-     mesh.rotation.y += 0.005;
+    mesh.rotation.x -= 0.02;
+    // mesh.rotation.y -= 0.02;
     // mesh.rotation.z += 0.0;
 
     mesh.scale.x += 0.0;
@@ -136,9 +136,9 @@ void update(void) {
 
         // current face
         vec3_t face_vertices[3];
-        face_vertices[0] = mesh.vertices[mesh_face.a - 1]; // -1 to compensate for index placement
-        face_vertices[1] = mesh.vertices[mesh_face.b - 1];
-        face_vertices[2] = mesh.vertices[mesh_face.c - 1];
+        face_vertices[0] = mesh.vertices[mesh_face.a];
+        face_vertices[1] = mesh.vertices[mesh_face.b];
+        face_vertices[2] = mesh.vertices[mesh_face.c];
 
         // transformation
         // init array to store transformed vertices(x,y,z)

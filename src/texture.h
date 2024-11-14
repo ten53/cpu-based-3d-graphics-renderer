@@ -17,5 +17,6 @@ extern uint32_t* mesh_texture;   // pointer to array of texture values
 extern upng_t* png_texture;
 
 void load_png_texture_data(char* filename);
+tex2_t tex2_clone(tex2_t* t);
 
 #endif

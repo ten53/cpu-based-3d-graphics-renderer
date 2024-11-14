@@ -60,3 +60,6 @@ CMakeLists.txt
 
 # MacOS
 .DS_Store
+
+# Output
+renderer

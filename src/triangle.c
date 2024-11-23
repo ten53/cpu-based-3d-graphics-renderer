@@ -4,6 +4,7 @@
 #include "vector.h"
 
 
+
 // ----- RETURN BAYCENTRIC WEIGHTS ALPHA, BETA, AND GAMMA FOR POINT P -----
 //
 //         (B)
@@ -86,7 +87,7 @@ void draw_triangle_pixel(
 
 // ----- DRAW TEXTURED PIXEL AT POSITION (x,y) USING INTERPOLATION -----
 void draw_triangle_texel(
-    int x, int y, uint32_t* texture,
+    int x, int y, upng_t* texture,
     vec4_t point_a, vec4_t point_b, vec4_t point_c,
     tex2_t a_uv, tex2_t b_uv, tex2_t c_uv
 ) {
@@ -118,6 +119,10 @@ void draw_triangle_texel(
     interpolated_u /= interpolated_reciprocal_w;
     interpolated_v /= interpolated_reciprocal_w;
 
+    // get mesh teture witdh & height dimenstions
+    int texture_width = upng_get_width(texture);
+    int texture_height = upng_get_height(texture);
+
     // map UV coordinate to full texture width and height
     int tex_x = abs((int)(interpolated_u * texture_width)) % texture_width;  // FIXME: Quick hack to prevent buffer overflow. Needs better solution.
     int tex_y = abs((int)(interpolated_v * texture_height)) % texture_height;
@@ -127,8 +132,10 @@ void draw_triangle_texel(
 
     // only draw pixel if value stored if depth value is less than the previously one stored in z-buffer
     if (interpolated_reciprocal_w < get_zbuffer_at(x, y)) {
+    // get buffer of colors from texture
+    uint32_t* texture_buffer = (uint32_t*) upng_get_buffer(texture);
     // draw pixel at position (x,y) with color that comes from mapped texture
-    draw_pixel(x, y, texture[(texture_width * tex_y) + tex_x]);
+    draw_pixel(x, y, texture_buffer[(texture_width * tex_y) + tex_x]);
 
     // update z-buffer value with 1/w of current pixel
     update_zbuffer_at(x, y, interpolated_reciprocal_w);
@@ -157,7 +164,7 @@ void draw_textured_triangle(
     int x0, int y0, float z0, float w0, float u0, float v0,
     int x1, int y1, float z1, float w1, float u1, float v1,
     int x2, int y2, float z2, float w2, float u2, float v2,
-    uint32_t* texture
+    upng_t* texture
 ) {
     // sort vertices by y-coordinate ascending (y0 < y1 < y2)
     if (y0 > y1) {
@@ -344,3 +351,23 @@ void draw_filled_triangle(
     }
 }
 
+
+vec3_t get_triangle_normal(vec4_t vertices[3]) {
+
+    // get vectors from A,B,C to calculate normal
+    vec3_t vector_a = vec3_from_vec4(vertices[0]);  /*    A     */
+    vec3_t vector_b = vec3_from_vec4(vertices[1]);  /*   / \    */
+    vec3_t vector_c = vec3_from_vec4(vertices[2]);  /*  C---B  */
+
+    // get vector subtraction of B-A and C-A
+    vec3_t vector_ab = vec3_sub(vector_b, vector_a);
+    vec3_t vector_ac = vec3_sub(vector_c, vector_a);
+    vec3_normalize(&vector_ab);
+    vec3_normalize(&vector_ac);
+
+    // calculate face normal using cross product to find perpendicular in a left-handed coordinate system
+    vec3_t normal = vec3_cross(vector_ab, vector_ac);  // opposite order 'vec3_cross(vector_ac, vector_ab)' for a right-handed coordinate system!
+    vec3_normalize(&normal);
+
+    return normal;
+}
